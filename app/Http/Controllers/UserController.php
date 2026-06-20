@@ -7,65 +7,62 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    /**
-     * Menampilkan daftar user (Gambar 1)
-     */
     public function index()
     {
-        return view('admin.users', [
-            'users' => User::all()
-        ]);
+        $users = User::orderBy('id', 'asc')->get();
+        return view('admin.users', compact('users'));
     }
 
-    /**
-     * Menampilkan form tambah user (Gambar 2)
-     */
     public function create()
     {
-        return view('admin.create');
+        return view('admin.users-create');
     }
 
-    /**
-     * Menyimpan user baru ke database (Gambar 2)
-     */
     public function store(Request $request)
     {
+        $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|min:6',
+        ]);
+
         User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => bcrypt($request->password),
         ]);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+        return redirect()->route('admin.users.index')
+                         ->with('success', 'User berhasil ditambahkan!');
     }
 
-    /**
-     * Menghapus user (Gambar terakhir yang kamu kirim)
-     */
-    public function destroy($id)
+    public function edit($id)
     {
         $user = User::findOrFail($id);
-        $user->delete();
-
-        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+        return view('admin.users-edit', compact('user'));
     }
 
-    // Tampilkan form edit
-public function edit($id)
-{
-    $user = User::findOrFail($id);
-    return view('admin.edit', compact('user'));
-}
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+        ]);
 
-// Simpan perubahan
-public function update(Request $request, $id)
-{
-    $user = User::findOrFail($id);
-    $user->update([
-        'name' => $request->name,
-        'email' => $request->email,
-    ]);
+        $user->update([
+            'name'  => $request->name,
+            'email' => $request->email,
+        ]);
 
-    return redirect()->route('users.index')->with('success', 'User updated successfully.');
-}
+        return redirect()->route('admin.users.index')
+                         ->with('success', 'User berhasil diupdate!');
+    }
+
+    public function destroy($id)
+    {
+        User::findOrFail($id)->delete();
+        return redirect()->route('admin.users.index')
+                         ->with('success', 'User berhasil dihapus!');
+    }
 }
